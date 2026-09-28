@@ -31,7 +31,7 @@ lpadmin -p Zebra_Virtual -E -v socket://127.0.0.1:9100 -m drv:///sample.drv/zebr
 lp -d Zebra_Virtual -o raw label.zpl   # test
 ```
 
-Remove it again with `lpadmin -x Zebra_Virtual`.
+`lpadmin` warns that printer drivers are deprecated; the queue is created and works. Remove it again with `lpadmin -x Zebra_Virtual`.
 
 ### Windows
 
