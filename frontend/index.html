@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Virtual ZPL Printer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Virtual ZPL Printer</h1>
+    <div id="status" class="status"></div>
+  </header>
+
+  <main class="layout">
+    <section class="list">
+      <table>
+        <thead>
+          <tr>
+            <th>Received</th>
+            <th>Source</th>
+            <th class="num">Size</th>
+            <th class="num">Labels</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p id="empty" class="empty" hidden>No prints yet. Send ZPL to the printer port, e.g.<br>
+        <code id="example"></code></p>
+    </section>
+
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <div id="d-title" class="d-title"></div>
+          <div id="d-meta" class="d-meta"></div>
+        </div>
+        <button id="d-close" class="icon" title="Close (Esc)">✕</button>
+      </div>
+      <div class="drawer-actions">
+        <button id="d-zoom">Actual size</button>
+        <button id="d-copy">Copy ZPL</button>
+        <button id="d-delete" class="danger">Delete</button>
+      </div>
+      <div id="d-error" class="d-error" hidden></div>
+      <div id="d-stored" class="d-stored" hidden></div>
+      <div id="d-images" class="d-images"></div>
+      <details class="d-zpl">
+        <summary>Raw ZPL</summary>
+        <pre id="d-zpl"></pre>
+      </details>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
