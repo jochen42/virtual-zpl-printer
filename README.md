@@ -63,13 +63,13 @@ $c = [Net.Sockets.TcpClient]::new("127.0.0.1", 9100); $b = [IO.File]::ReadAllByt
 
 ## Downloaded fonts
 
-`~DY` (binary, hex, `:B64:`, `:Z64:`) and `~DU` uploads are saved under `<data>/memory/<drive>/<name>`, like the printer's `E:`/`R:` memory, and survive restarts. TrueType/OpenType files are used for `^A@…,E:NAME.TTF` and for letters assigned with `^CW`. An unknown font file falls back to font 0, as on a printer. Glyphs missing from a downloaded font render as the font's placeholder box.
+`~DY` (binary, hex, `:B64:`, `:Z64:`) and `~DU` uploads are saved under `<data>/memory/<drive>/<name>`, like the printer's `E:`/`R:` memory, and survive restarts. TrueType/OpenType files are used for `^A@…,E:NAME.TTF` and for letters assigned with `^CW`. An unknown font file falls back to font 0, as on a printer. Characters missing from a downloaded font render as the font's placeholder box, except space characters (e.g. U+202F narrow no-break space from number formatting), which render as a plain space.
 
 go-zpl is vendored in `third_party/go-zpl` for this; see its `PATCHES.md`.
 
 ## Storage
 
-Prints live in `<data>/prints`, one directory per job, named by UTC receive time: `job.zpl` (raw bytes), `label-N.png` (one per `^XA…^XZ` block) and `meta.json`. Jobs that fail to render are still saved with the error.
+Prints live in `<data>/prints`, one directory per job, named by UTC receive time: `job.zpl` (raw bytes), `label-N.png` (one per `^XA…^XZ` block, 1-bit like thermal print output) and `meta.json`. Jobs that fail to render are still saved with the error.
 
 A job ends when the sender closes the connection, or 750 ms after the last complete `^XA…^XZ` block if the connection stays open.
 

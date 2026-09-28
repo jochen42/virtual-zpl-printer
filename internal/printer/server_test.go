@@ -1,6 +1,9 @@
 package printer
 
 import (
+	"bytes"
+	"image/color"
+	"image/png"
 	"net"
 	"testing"
 	"time"
@@ -33,5 +36,26 @@ func TestRenderMultipleLabels(t *testing.T) {
 	}
 	if len(images) != 2 {
 		t.Fatalf("got %d images, want 2", len(images))
+	}
+}
+
+func TestRenderIsOneBit(t *testing.T) {
+	images, err := Render([]byte("^XA^PW200^LL60^FO10,10^A0N,30,30^FDInk^FS^XZ"), zpl.DPI203)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := png.Decode(bytes.NewReader(images[0]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[color.Gray]bool{}
+	b := img.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			seen[color.GrayModel.Convert(img.At(x, y)).(color.Gray)] = true
+		}
+	}
+	if len(seen) != 2 || !seen[color.Gray{0}] || !seen[color.Gray{255}] {
+		t.Fatalf("want only black and white pixels, got %v", seen)
 	}
 }

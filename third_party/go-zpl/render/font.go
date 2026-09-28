@@ -6,7 +6,9 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"strings"
 	"sync"
+	"unicode"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -229,6 +231,23 @@ func (fm *fontManager) getCJKFace(height int) (font.Face, error) {
 	return face, nil
 }
 
+// substituteMissingSpaces replaces space characters the face has no glyph for
+// (e.g. U+202F narrow no-break space from number formatting) with U+0020, so
+// they render as a gap instead of the font's missing-glyph box.
+func substituteMissingSpaces(face font.Face, text string) string {
+	for _, r := range text {
+		if r != ' ' && unicode.Is(unicode.Zs, r) && !hasGlyph(face, r) {
+			return strings.Map(func(r rune) rune {
+				if r != ' ' && unicode.Is(unicode.Zs, r) && !hasGlyph(face, r) {
+					return ' '
+				}
+				return r
+			}, text)
+		}
+	}
+	return text
+}
+
 // hasGlyph checks if the given face has a glyph for the rune.
 func hasGlyph(face font.Face, r rune) bool {
 	_, ok := face.GlyphAdvance(r)
@@ -313,6 +332,7 @@ func (fm *fontManager) drawText(img *image.RGBA, text string, x, y int, f zpl.Fo
 	if err != nil {
 		return
 	}
+	text = substituteMissingSpaces(face, text)
 
 	// Calculate scale factor for width adjustment
 	// If width == 0, use natural font proportions (no scaling)
@@ -355,6 +375,7 @@ func (fm *fontManager) measureTextWidth(text string, f zpl.Font, height, width i
 	if err != nil {
 		return 0
 	}
+	text = substituteMissingSpaces(face, text)
 
 	cjkFace, _ := fm.getCJKFace(height)
 
