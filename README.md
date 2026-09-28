@@ -20,16 +20,18 @@ printf '^XA^FO50,50^A0N,50,50^FDHello^FS^XZ' | nc localhost 9100
 
 ## Add it as a printer
 
-Apps that send ZPL themselves (QZ Tray, label software in "raw" mode) need a printer queue that passes data through unchanged. Use `127.0.0.1` on the same machine, otherwise the IP of the machine running the app.
+Use `127.0.0.1` on the same machine, otherwise the IP of the machine running the app. Apps like QZ Tray look for label printers by name, so the name has to start with `Zebra` on macOS and Linux and with `ZDesigner` on Windows.
 
-### macOS
+### macOS and Linux
+
+macOS no longer accepts raw queues (`-m raw`), so use CUPS' built-in Zebra ZPL driver. Jobs sent raw (QZ Tray, `lp -o raw`) pass through it unchanged:
 
 ```sh
-lpadmin -p Virtual_ZPL -E -v socket://127.0.0.1:9100 -m raw -D "Virtual ZPL Printer"
-lp -d Virtual_ZPL -o raw label.zpl   # test
+lpadmin -p Zebra_Virtual -E -v socket://127.0.0.1:9100 -m drv:///sample.drv/zebra.ppd -D "Zebra Virtual ZPL Printer"
+lp -d Zebra_Virtual -o raw label.zpl   # test
 ```
 
-CUPS warns that raw queues are deprecated; they still work. In System Settings → Printers & Scanners, the GUI route (Add Printer → IP → protocol "HP Jetdirect – Socket") only offers drivers that convert to PostScript, which this printer cannot render.
+Remove it again with `lpadmin -x Zebra_Virtual`.
 
 ### Windows
 
@@ -37,12 +39,12 @@ PowerShell as administrator:
 
 ```powershell
 Add-PrinterPort -Name "VirtualZPL_9100" -PrinterHostAddress "127.0.0.1" -PortNumber 9100
-Add-Printer -Name "Virtual ZPL" -DriverName "Generic / Text Only" -PortName "VirtualZPL_9100"
+Add-Printer -Name "ZDesigner Virtual ZPL" -DriverName "Generic / Text Only" -PortName "VirtualZPL_9100"
 ```
 
-Or via Settings → Printers & scanners → Add device → "Add manually" → "Add a printer using an IP address or hostname" → TCP/IP device, host `127.0.0.1`, untick "Query the printer" → driver "Generic" → "Generic / Text Only".
+Or via Settings → Printers & scanners → Add device → "Add manually" → "Add a printer using an IP address or hostname" → TCP/IP device, host `127.0.0.1`, untick "Query the printer" → driver "Generic" → "Generic / Text Only", printer name starting with `ZDesigner`.
 
-"Generic / Text Only" passes ZPL through as is. To print ordinary documents (PDF, Word) as labels, install Zebra's ZDesigner driver instead and pick it as the driver; it converts pages to ZPL.
+"Generic / Text Only" passes ZPL through as is. To print ordinary documents (PDF, Word) as labels, install Zebra's ZDesigner driver instead; it converts pages to ZPL.
 
 Send a file directly, without a queue:
 
