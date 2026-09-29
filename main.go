@@ -76,6 +76,26 @@ func main() {
 		return s
 	}
 
+	handler.OpenFolder = openFolder
+	if !*headless {
+		handler.SaveFile = func(name string, data []byte) (bool, error) {
+			mu.Lock()
+			c := wailsCtx
+			mu.Unlock()
+			if c == nil {
+				return false, errors.New("window not ready")
+			}
+			path, err := runtime.SaveFileDialog(c, runtime.SaveDialogOptions{
+				DefaultFilename: name,
+				Filters:         []runtime.FileFilter{{DisplayName: "PDF", Pattern: "*.pdf"}},
+			})
+			if err != nil || path == "" {
+				return false, err
+			}
+			return true, os.WriteFile(path, data, 0o644)
+		}
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 

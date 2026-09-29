@@ -143,6 +143,7 @@ button {
   cursor: pointer;
 }
 button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; border-color: var(--border); }
 button.danger { color: var(--danger); }
 button.danger:hover { border-color: var(--danger); }
 button.icon { border: none; background: none; font-size: 16px; padding: 2px 6px; color: var(--muted); }
@@ -166,20 +167,20 @@ button.icon { border: none; background: none; font-size: 16px; padding: 2px 6px;
   font-size: 13px;
 }
 
-.d-images { flex: 1; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.d-images { flex: 1; overflow: auto; scrollbar-gutter: stable; padding: 18px; display: flex; flex-direction: column; gap: 18px; align-items: center; }
 .d-images figure { margin: 0; max-width: 100%; }
 .d-images figcaption { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-.d-images img {
+.d-images img, .d-images canvas {
   display: block;
   max-width: 100%;
   background: var(--label-bg);
   border: 1px solid var(--border);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  image-rendering: pixelated;
 }
+.d-images img { image-rendering: pixelated; }
 .d-images.actual { align-items: flex-start; }
 .d-images.actual figure { max-width: none; }
-.d-images.actual img { max-width: none; }
+.d-images.actual img, .d-images.actual canvas { max-width: none; }
 
 .d-zpl { border-top: 1px solid var(--border); padding: 10px 18px; max-height: 40%; overflow: auto; }
 .d-zpl summary { cursor: pointer; color: var(--muted); font-size: 13px; }

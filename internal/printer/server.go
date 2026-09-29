@@ -86,12 +86,13 @@ func (s *Server) handle(conn net.Conn) {
 		}
 		job.Stored = append(job.Stored, dl.Name)
 	}
-	images, renderErr := Render(rest, s.DPI)
+	out, renderErr := Render(rest, s.DPI)
 	if errors.Is(renderErr, ErrNoLabel) && len(downloads) > 0 {
 		// Download-only job.
 		renderErr = nil
 	}
-	job.Images = images
+	job.Images = out.Images
+	job.PDF = out.PDF
 	job.Err = errors.Join(append(errs, renderErr)...)
 
 	p, err := s.Store.Save(job)

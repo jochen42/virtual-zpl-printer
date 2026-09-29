@@ -69,9 +69,13 @@ $c = [Net.Sockets.TcpClient]::new("127.0.0.1", 9100); $b = [IO.File]::ReadAllByt
 
 go-zpl is vendored in `third_party/go-zpl` for this; see its `PATCHES.md`.
 
+PDF.js (Apache-2.0) is vendored in `frontend/vendor/pdfjs`: the legacy build of `pdfjs-dist`, which also runs in older system webviews. To update it, copy `legacy/build/pdf.min.mjs`, `legacy/build/pdf.worker.min.mjs` and `LICENSE` from a newer `pdfjs-dist` package.
+
 ## Storage
 
-Prints live in `<data>/prints`, one directory per job, named by UTC receive time: `job.zpl` (raw bytes), `label-N.png` (one per `^XA…^XZ` block, 1-bit like thermal print output) and `meta.json`. Jobs that fail to render are still saved with the error.
+Prints live in `<data>/prints`, one directory per job, named by UTC receive time: `job.zpl` (raw bytes), `label-N.png` (one per `^XA…^XZ` block, 1-bit like thermal print output), `labels.pdf` and `meta.json`. Jobs that fail to render are still saved with the error. "Open folder" in the detail view shows a print's directory in Finder / Explorer / the file manager.
+
+Each job is also saved as `labels.pdf`: one page per label at the physical label size (dots ÷ dpi), so it prints 1:1. The PDF is vector: text is drawn from the same font outlines, boxes, circles, lines and barcodes as shapes; only `^GF` graphics, which are bitmaps in the ZPL, are embedded as images. Text is outlines, so it can't be selected or searched. The detail view previews labels from this PDF with [PDF.js](https://mozilla.github.io/pdf.js/), so they stay sharp at any zoom; prints without a PDF show the PNGs. "Save PDF" saves it; in headless mode the browser downloads it from `/api/prints/<id>/pdf`. Prints received before this version have no PDF.
 
 A job ends when the sender closes the connection, or 750 ms after the last complete `^XA…^XZ` block if the connection stays open.
 

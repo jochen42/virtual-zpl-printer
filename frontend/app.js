@@ -9,6 +9,8 @@ const state = {
   knownIds: null,
   actualSize: false,
   zpl: "",
+  dpi: 203,
+  pdf: null, // PDF.js document of the selected print
 };
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -34,6 +36,7 @@ function imageUrl(p, name) {
 
 async function loadStatus() {
   const s = await (await api("/api/status")).json();
+  state.dpi = s.dpi;
   const el = $("status");
   el.classList.toggle("error", !!s.error);
   el.innerHTML = "";
@@ -106,22 +109,11 @@ async function select(id) {
   $("d-meta").textContent = `${p.remoteAddr} · ${formatBytes(p.bytes)} · ${p.images.length} label${p.images.length === 1 ? "" : "s"}`;
   $("d-error").hidden = !p.error;
   $("d-error").textContent = p.error || "";
+  $("d-pdf").disabled = !p.pdf;
   $("d-stored").hidden = !p.stored?.length;
   $("d-stored").textContent = p.stored?.length ? `Stored on printer: ${p.stored.join(", ")}` : "";
 
-  $("d-images").replaceChildren(...p.images.map((name, i) => {
-    const fig = document.createElement("figure");
-    if (p.images.length > 1) {
-      const cap = document.createElement("figcaption");
-      cap.textContent = `Label ${i + 1}`;
-      fig.append(cap);
-    }
-    const img = document.createElement("img");
-    img.src = imageUrl(p, name);
-    img.alt = `Label ${i + 1}`;
-    fig.append(img);
-    return fig;
-  }));
+  showLabels(p);
 
   $("drawer").classList.add("open");
   $("drawer").setAttribute("aria-hidden", "false");
@@ -137,7 +129,118 @@ async function select(id) {
   }
 }
 
+function labelFigure(i, count, child) {
+  const fig = document.createElement("figure");
+  if (count > 1) {
+    const cap = document.createElement("figcaption");
+    cap.textContent = `Label ${i + 1}`;
+    fig.append(cap);
+  }
+  fig.append(child);
+  return fig;
+}
+
+function showImages(p) {
+  $("d-images").replaceChildren(...p.images.map((name, i) => {
+    const img = document.createElement("img");
+    img.src = imageUrl(p, name);
+    img.alt = `Label ${i + 1}`;
+    return labelFigure(i, p.images.length, img);
+  }));
+}
+
+// Shows the print's PDF, which stays sharp at any zoom. Prints from older
+// versions have no PDF and show the PNGs.
+async function showLabels(p) {
+  closePdf();
+  if (!p.pdf) {
+    showImages(p);
+    return;
+  }
+  $("d-images").replaceChildren();
+  try {
+    const lib = await loadPdfjs();
+    const doc = await lib.getDocument({ url: `/api/prints/${encodeURIComponent(p.id)}/pdf` }).promise;
+    if (state.selectedId !== p.id) {
+      doc.destroy();
+      return;
+    }
+    state.pdf = doc;
+    const canvases = [];
+    for (let i = 0; i < doc.numPages; i++) {
+      const canvas = document.createElement("canvas");
+      canvas.setAttribute("role", "img");
+      canvas.setAttribute("aria-label", `Label ${i + 1}`);
+      canvases.push(canvas);
+    }
+    $("d-images").replaceChildren(...canvases.map((c, i) => labelFigure(i, canvases.length, c)));
+    await renderPdf();
+  } catch (err) {
+    console.error("PDF preview failed, showing PNGs", err);
+    if (state.selectedId === p.id) {
+      closePdf();
+      showImages(p);
+    }
+  }
+}
+
+let pdfjs;
+async function loadPdfjs() {
+  if (!pdfjs) {
+    pdfjs = await import("./vendor/pdfjs/pdf.min.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL("vendor/pdfjs/pdf.worker.min.mjs", document.baseURI).href;
+  }
+  return pdfjs;
+}
+
+function closePdf() {
+  state.pdf?.destroy();
+  state.pdf = null;
+}
+
+// Renders every page at its on-screen size times the device pixel ratio.
+// Pages are sized like the PNGs were: one dot per CSS pixel, shrunk to fit
+// unless "Actual size" is on.
+let renderTasks = [];
+async function renderPdf() {
+  const doc = state.pdf;
+  if (!doc) return;
+  for (const t of renderTasks) t.cancel();
+  renderTasks = [];
+  const box = $("d-images");
+  const available = box.clientWidth - parseFloat(getComputedStyle(box).paddingLeft) * 2 - 2;
+  const canvases = box.querySelectorAll("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  const jobs = [];
+  for (let i = 0; i < canvases.length; i++) {
+    const page = await doc.getPage(i + 1);
+    if (state.pdf !== doc) return;
+    const pt = page.getViewport({ scale: 1 });
+    const natural = (pt.width * state.dpi) / 72;
+    const cssWidth = state.actualSize ? natural : Math.min(natural, available);
+    const viewport = page.getViewport({ scale: (cssWidth / pt.width) * dpr });
+    const canvas = canvases[i];
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    canvas.style.width = `${cssWidth}px`;
+    canvas.style.height = `${viewport.height / dpr}px`;
+    const task = page.render({ canvas, viewport });
+    renderTasks.push(task);
+    jobs.push(task.promise.catch((err) => {
+      if (err?.name !== "RenderingCancelledException") throw err;
+    }));
+  }
+  await Promise.all(jobs);
+}
+
+let resizeTimer;
+new ResizeObserver(() => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderPdf, 100);
+}).observe($("d-images"));
+
 function closeDrawer() {
+  closePdf();
   state.selectedId = null;
   $("drawer").classList.remove("open");
   $("drawer").setAttribute("aria-hidden", "true");
@@ -158,12 +261,37 @@ $("d-zoom").addEventListener("click", () => {
   state.actualSize = !state.actualSize;
   $("d-images").classList.toggle("actual", state.actualSize);
   $("d-zoom").textContent = state.actualSize ? "Fit to width" : "Actual size";
+  renderPdf();
 });
 
 $("d-copy").addEventListener("click", async () => {
   await navigator.clipboard.writeText(state.zpl);
   $("d-copy").textContent = "Copied";
   setTimeout(() => ($("d-copy").textContent = "Copy ZPL"), 1200);
+});
+
+$("d-pdf").addEventListener("click", async () => {
+  const id = state.selectedId;
+  if (!id) return;
+  const url = `/api/prints/${encodeURIComponent(id)}/pdf`;
+  // The desktop webview can't download files; the app shows a save dialog.
+  if (!window.runtime) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    a.click();
+    return;
+  }
+  const { saved } = await (await api(`${url}/save`, { method: "POST" })).json();
+  if (saved) {
+    $("d-pdf").textContent = "Saved";
+    setTimeout(() => ($("d-pdf").textContent = "Save PDF"), 1200);
+  }
+});
+
+$("d-folder").addEventListener("click", async () => {
+  const id = state.selectedId;
+  if (id) await api(`/api/prints/${encodeURIComponent(id)}/open-folder`, { method: "POST" });
 });
 
 $("d-delete").addEventListener("click", async () => {

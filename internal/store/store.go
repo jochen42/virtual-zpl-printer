@@ -16,6 +16,7 @@ import (
 const (
 	metaFile = "meta.json"
 	zplFile  = "job.zpl"
+	pdfFile  = "labels.pdf"
 )
 
 var idPattern = regexp.MustCompile(`^[0-9]{8}T[0-9]{6}\.[0-9]{9}(-[0-9]+)?$`)
@@ -31,6 +32,8 @@ type Print struct {
 	Bytes      int       `json:"bytes"`
 	// Images are file names inside the print directory, one per rendered label.
 	Images []string `json:"images"`
+	// PDF is the file name of the labels as a vector PDF, if rendered.
+	PDF string `json:"pdf,omitempty"`
 	// Stored lists objects the job saved on the printer, e.g. fonts from ~DY.
 	Stored []string `json:"stored,omitempty"`
 	Error  string   `json:"error,omitempty"`
@@ -42,6 +45,7 @@ type Job struct {
 	RemoteAddr string
 	Data       []byte
 	Images     [][]byte // rendered PNGs
+	PDF        []byte
 	Stored     []string
 	Err        error
 }
@@ -109,6 +113,12 @@ func (s *Store) Save(job Job) (Print, error) {
 		}
 		p.Images = append(p.Images, name)
 	}
+	if job.PDF != nil {
+		if err := os.WriteFile(filepath.Join(dir, pdfFile), job.PDF, 0o644); err != nil {
+			return Print{}, err
+		}
+		p.PDF = pdfFile
+	}
 	if job.Err != nil {
 		p.Error = job.Err.Error()
 	}
@@ -157,6 +167,26 @@ func (s *Store) ZPL(id string) ([]byte, error) {
 		return nil, err
 	}
 	return os.ReadFile(filepath.Join(s.Dir, id, zplFile))
+}
+
+// PrintDir returns the on-disk directory of a print.
+func (s *Store) PrintDir(id string) (string, error) {
+	if _, err := s.Get(id); err != nil {
+		return "", err
+	}
+	return filepath.Join(s.Dir, id), nil
+}
+
+// PDF returns the print's labels as PDF.
+func (s *Store) PDF(id string) ([]byte, error) {
+	p, err := s.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	if p.PDF == "" {
+		return nil, ErrNotFound
+	}
+	return os.ReadFile(filepath.Join(s.Dir, id, p.PDF))
 }
 
 // ImagePath returns the on-disk path of one of the print's images.
