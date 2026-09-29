@@ -11,6 +11,7 @@ const state = {
   zpl: "",
   dpi: 203,
   pdf: null, // PDF.js document of the selected print
+  pdfTask: null, // its loading task, which owns it
 };
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -158,13 +159,15 @@ async function showLabels(p) {
     return;
   }
   $("d-images").replaceChildren();
+  let task;
   try {
     const lib = await loadPdfjs();
-    const doc = await lib.getDocument({ url: `/api/prints/${encodeURIComponent(p.id)}/pdf` }).promise;
-    if (state.selectedId !== p.id) {
-      doc.destroy();
-      return;
-    }
+    if (state.selectedId !== p.id) return;
+    task = lib.getDocument({ url: `/api/prints/${encodeURIComponent(p.id)}/pdf` });
+    state.pdfTask = task;
+    const doc = await task.promise;
+    // Selecting another print destroys this task; its promise then rejects.
+    if (state.pdfTask !== task) return;
     state.pdf = doc;
     const canvases = [];
     for (let i = 0; i < doc.numPages; i++) {
@@ -176,11 +179,11 @@ async function showLabels(p) {
     $("d-images").replaceChildren(...canvases.map((c, i) => labelFigure(i, canvases.length, c)));
     await renderPdf();
   } catch (err) {
+    // A load cancelled by selecting another print is not a failure.
+    if (state.selectedId !== p.id || (task && state.pdfTask !== task)) return;
     console.error("PDF preview failed, showing PNGs", err);
-    if (state.selectedId === p.id) {
-      closePdf();
-      showImages(p);
-    }
+    closePdf();
+    showImages(p);
   }
 }
 
@@ -194,7 +197,9 @@ async function loadPdfjs() {
 }
 
 function closePdf() {
-  state.pdf?.destroy();
+  // PDF.js 6 documents have no destroy(); their loading task does.
+  state.pdfTask?.destroy();
+  state.pdfTask = null;
   state.pdf = null;
 }
 
