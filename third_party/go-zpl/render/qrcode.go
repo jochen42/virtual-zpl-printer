@@ -73,6 +73,7 @@ func (c *canvas) drawQRCode(bc *zpl.BarcodeQR) {
 	}
 
 	// Draw onto canvas
+	c.recordImage(finalImg, x, y)
 	draw.Draw(c.img, image.Rect(x, y, x+finalImg.Bounds().Dx(), y+finalImg.Bounds().Dy()),
 		finalImg, image.Point{0, 0}, draw.Over)
 }

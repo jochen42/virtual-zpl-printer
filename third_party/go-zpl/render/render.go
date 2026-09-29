@@ -73,6 +73,17 @@ func (r *Renderer) WithIgnoreLabelHome(ignore bool) *Renderer {
 // The returned image uses white background with black elements,
 // matching thermal label printer output.
 func (r *Renderer) Render(label *zpl.Label) (image.Image, error) {
+	img, _, err := r.render(label, false)
+	return img, err
+}
+
+// RenderDrawing renders the label like Render and also returns it as vector
+// shapes, e.g. for PDF output.
+func (r *Renderer) RenderDrawing(label *zpl.Label) (image.Image, *Drawing, error) {
+	return r.render(label, true)
+}
+
+func (r *Renderer) render(label *zpl.Label, vector bool) (image.Image, *Drawing, error) {
 	// A zero-value Renderer literal has no DPI; treat it as the 203 DPI default
 	// so the fallback canvas is never 0×0.
 	dpi := r.DPI
@@ -82,7 +93,7 @@ func (r *Renderer) Render(label *zpl.Label) (image.Image, error) {
 	switch dpi {
 	case zpl.DPI203, zpl.DPI300, zpl.DPI600:
 	default:
-		return nil, fmt.Errorf("unsupported DPI %d: want 203, 300, or 600", dpi)
+		return nil, nil, fmt.Errorf("unsupported DPI %d: want 203, 300, or 600", dpi)
 	}
 
 	width := r.Width
@@ -103,7 +114,10 @@ func (r *Renderer) Render(label *zpl.Label) (image.Image, error) {
 
 	canvas, err := newCanvas(width, height)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if vector {
+		canvas.vec = &recorder{d: Drawing{Width: width, Height: height}}
 	}
 
 	// Apply label home offset (^LH) unless ignored
@@ -117,14 +131,17 @@ func (r *Renderer) Render(label *zpl.Label) (image.Image, error) {
 	// Process all commands
 	for _, cmd := range label.Commands() {
 		if err := canvas.processCommand(cmd); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	// Note: ^POI (Print Orientation Inverted) affects how the printer outputs,
 	// but for preview rendering we show the label as it appears when viewed.
 	// The ZPL coordinates are already laid out for the final appearance.
-	return canvas.Image(), nil
+	if vector {
+		return canvas.Image(), &canvas.vec.d, nil
+	}
+	return canvas.Image(), nil, nil
 }
 
 // RenderAll renders multiple labels and returns an image for each.
@@ -240,6 +257,9 @@ type canvas struct {
 	// In ZPL, barcode commands like ^BC set up the barcode parameters,
 	// then the following ^FD provides the data
 	pendingBarcode interface{}
+
+	// vec, if set, records the vector form of everything drawn.
+	vec *recorder
 }
 
 // Shared font manager (parsed once, reused across renders)
@@ -491,7 +511,7 @@ func (c *canvas) drawText(text string) {
 					}
 				}
 				ly := y + i*(height+lineSpacing)
-				c.fontMgr.drawText(c.img, line, lx, ly, c.currentFont, height, c.fontWidth, orient, c.fieldReverse, c.useBaseline)
+				c.text(line, lx, ly, c.currentFont, height, c.fontWidth, orient, c.fieldReverse, c.useBaseline)
 			}
 
 			c.fieldReverse = false
@@ -512,7 +532,7 @@ func (c *canvas) drawText(text string) {
 	}
 
 	// Pass fontWidth directly - 0 means proportional (natural font width)
-	c.fontMgr.drawText(c.img, text, x, y, c.currentFont, height, c.fontWidth, orient, c.fieldReverse, c.useBaseline)
+	c.text(text, x, y, c.currentFont, height, c.fontWidth, orient, c.fieldReverse, c.useBaseline)
 
 	// Reset field reverse after drawing
 	c.fieldReverse = false
@@ -633,6 +653,7 @@ func breakWordToWidth(word string, maxWidth int, measure func(string) int) []str
 
 // drawBox renders a graphic box at the current position.
 func (c *canvas) drawBox(box *zpl.GraphicBox) {
+	c.recordBox(box)
 	x := c.curX
 	y := c.curY
 	w := box.Width
@@ -727,6 +748,7 @@ func (c *canvas) setPixel(px, py int, isWhite bool) {
 
 // drawCircle renders a graphic circle at the current position.
 func (c *canvas) drawCircle(circle *zpl.GraphicCircle) {
+	c.recordCircle(circle)
 	cx := c.curX + circle.Diameter/2
 	cy := c.curY + circle.Diameter/2
 	r := circle.Diameter / 2
@@ -751,6 +773,7 @@ func (c *canvas) drawCircle(circle *zpl.GraphicCircle) {
 
 // drawDiagonalLine renders a diagonal line at the current position.
 func (c *canvas) drawDiagonalLine(line *zpl.GraphicDiagonalLine) {
+	c.recordDiagonalLine(line)
 	x := c.curX
 	y := c.curY
 	w := line.Width
@@ -778,6 +801,7 @@ func (c *canvas) drawDiagonalLine(line *zpl.GraphicDiagonalLine) {
 
 // drawEllipse renders an ellipse at the current position.
 func (c *canvas) drawEllipse(ellipse *zpl.GraphicEllipse) {
+	c.recordEllipse(ellipse)
 	cx := c.curX + ellipse.Width/2
 	cy := c.curY + ellipse.Height/2
 	rx := ellipse.Width / 2
@@ -808,6 +832,7 @@ func (c *canvas) drawEllipse(ellipse *zpl.GraphicEllipse) {
 
 // drawGraphicField renders a bitmap graphic field at the current position.
 func (c *canvas) drawGraphicField(gf *zpl.GraphicField) {
+	c.recordGraphicField(gf)
 	x := c.curX
 	y := c.curY
 	bytesPerRow := gf.BytesPerRow

@@ -66,6 +66,7 @@ func (c *canvas) drawAztec(bc *zpl.BarcodeAztec) {
 	// Draw onto canvas at current position
 	x := c.curX
 	y := c.curY
+	c.recordImage(finalImg, x, y)
 	draw.Draw(c.img, image.Rect(x, y, x+finalImg.Bounds().Dx(), y+finalImg.Bounds().Dy()),
 		finalImg, image.Point{0, 0}, draw.Over)
 }

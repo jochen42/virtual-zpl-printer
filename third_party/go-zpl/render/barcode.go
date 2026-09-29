@@ -1,6 +1,7 @@
 package render
 
 import (
+	"image"
 	"image/color"
 
 	zpl "github.com/StirlingMarketingGroup/go-zpl"
@@ -548,6 +549,7 @@ func (c *canvas) drawBarcode128(bc *zpl.BarcodeCode128, moduleWidth int) {
 		isBar := true
 		for _, width := range pattern {
 			if isBar {
+				c.recordRects(PaintBlack, image.Rect(currentX, y, currentX+width*moduleWidth, y+height))
 				// Draw bar
 				for dx := 0; dx < width*moduleWidth; dx++ {
 					for dy := 0; dy < height; dy++ {
@@ -564,6 +566,7 @@ func (c *canvas) drawBarcode128(bc *zpl.BarcodeCode128, moduleWidth int) {
 	isBar := true
 	for _, width := range code128Stop {
 		if isBar {
+			c.recordRects(PaintBlack, image.Rect(currentX, y, currentX+width*moduleWidth, y+height))
 			for dx := 0; dx < width*moduleWidth; dx++ {
 				for dy := 0; dy < height; dy++ {
 					c.img.Set(currentX+dx, y+dy, col)
@@ -597,7 +600,7 @@ func (c *canvas) drawBarcode128(bc *zpl.BarcodeCode128, moduleWidth int) {
 
 		// Center the text under the barcode
 		textX := x + (barcodeWidth-estimatedTextWidth)/2
-		c.fontMgr.drawText(c.img, bc.Data, textX, textY, zpl.FontA, textHeight, textWidth, zpl.OrientationNormal, false, false)
+		c.text(bc.Data, textX, textY, zpl.FontA, textHeight, textWidth, zpl.OrientationNormal, false, false)
 	}
 }
 

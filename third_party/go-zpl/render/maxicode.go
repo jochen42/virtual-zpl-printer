@@ -63,6 +63,7 @@ func (c *canvas) drawMaxiCode(mc *zpl.BarcodeMaxiCode) {
 	// Draw the MaxiCode image onto our canvas at the current position
 	x := c.curX
 	y := c.curY
+	c.recordMaxiCode(grid, 7.5, x, y)
 
 	// The library renders with a white background, so we can just draw it directly
 	draw.Draw(c.img, image.Rect(x, y, x+maxiImg.Bounds().Dx(), y+maxiImg.Bounds().Dy()),

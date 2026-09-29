@@ -79,6 +79,7 @@ func (c *canvas) drawPDF417WithModuleWidth(bc *zpl.BarcodePDF417, moduleWidth in
 	y := c.curY
 	srcBounds := finalImg.Bounds()
 	// Use srcBounds.Min as source point - the scaled image may have non-zero origin
+	c.recordImage(finalImg, x, y)
 	draw.Draw(c.img, image.Rect(x, y, x+srcBounds.Dx(), y+srcBounds.Dy()),
 		finalImg, srcBounds.Min, draw.Over)
 }

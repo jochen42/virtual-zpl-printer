@@ -17,31 +17,47 @@ func (s *SymbolGrid) GetModule(row, column int) bool {
 
 // Draw renders the symbol grid as hexagonal modules with a bullseye center pattern.
 func (s *SymbolGrid) Draw(multiplier float64) *gg.Context {
-	centerX := 13.64 * multiplier
-	centerY := 13.43 * multiplier
-
-	innerRadius := 0.85 * multiplier
-	centerRadius := 2.20 * multiplier
-	outerRadius := 3.54 * multiplier
-
+	g := s.Geometry(multiplier)
 	dc := gg.NewContext(int(28*multiplier), int(26.8*multiplier))
 
 	// Central bullseye patterns.
-	dc.SetLineWidth(0.67 * multiplier)
-
-	dc.DrawCircle(centerX, centerY, outerRadius)
-	dc.SetRGB(0, 0, 0)
-	dc.Stroke()
-
-	dc.DrawCircle(centerX, centerY, centerRadius)
-	dc.SetRGB(0, 0, 0)
-	dc.Stroke()
-
-	dc.DrawCircle(centerX, centerY, innerRadius)
-	dc.SetRGB(0, 0, 0)
-	dc.Stroke()
+	dc.SetLineWidth(g.RingWidth)
+	for _, r := range g.RingRadii {
+		dc.DrawCircle(g.CenterX, g.CenterY, r)
+		dc.SetRGB(0, 0, 0)
+		dc.Stroke()
+	}
 
 	// Hexagons
+	for _, hex := range g.Hexagons {
+		dc.MoveTo(hex[0][0], hex[0][1])
+		for _, p := range hex[1:] {
+			dc.LineTo(p[0], p[1])
+		}
+		dc.Fill()
+	}
+
+	return dc
+}
+
+// Geometry is the symbol's shapes in pixels at a scale of multiplier.
+type Geometry struct {
+	CenterX, CenterY float64
+	// RingRadii are the bullseye circles, stroked with RingWidth.
+	RingRadii [3]float64
+	RingWidth float64
+	// Hexagons are the dark modules as filled polygons.
+	Hexagons [][6][2]float64
+}
+
+// Geometry returns the symbol's shapes, as drawn by Draw.
+func (s *SymbolGrid) Geometry(multiplier float64) Geometry {
+	g := Geometry{
+		CenterX:   13.64 * multiplier,
+		CenterY:   13.43 * multiplier,
+		RingRadii: [3]float64{3.54 * multiplier, 2.20 * multiplier, 0.85 * multiplier},
+		RingWidth: 0.67 * multiplier,
+	}
 	for row := 0; row < 33; row++ {
 		for column := 0; column < 30; column++ {
 			if s.GetModule(row, column) {
@@ -55,18 +71,18 @@ func (s *SymbolGrid) Draw(multiplier float64) *gg.Context {
 				hexRectW := 0.76 * multiplier
 				hexRectH := 0.88 * multiplier
 
-				dc.MoveTo(hexRectX+hexRectW*0.5, hexRectY)
-				dc.LineTo(hexRectX+hexRectW, hexRectY+hexRectH*0.25)
-				dc.LineTo(hexRectX+hexRectW, hexRectY+hexRectH*0.75)
-				dc.LineTo(hexRectX+hexRectW*0.5, hexRectY+hexRectH)
-				dc.LineTo(hexRectX, hexRectY+hexRectH*0.75)
-				dc.LineTo(hexRectX, hexRectY+hexRectH*0.25)
-				dc.Fill()
+				g.Hexagons = append(g.Hexagons, [6][2]float64{
+					{hexRectX + hexRectW*0.5, hexRectY},
+					{hexRectX + hexRectW, hexRectY + hexRectH*0.25},
+					{hexRectX + hexRectW, hexRectY + hexRectH*0.75},
+					{hexRectX + hexRectW*0.5, hexRectY + hexRectH},
+					{hexRectX, hexRectY + hexRectH*0.75},
+					{hexRectX, hexRectY + hexRectH*0.25},
+				})
 			}
 		}
 	}
-
-	return dc
+	return g
 }
 
 // SaveToPNG renders the symbol grid and saves it as a PNG file.
