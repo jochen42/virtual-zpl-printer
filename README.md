@@ -90,6 +90,8 @@ make test
 make dist         # release archive for this platform in dist/
 ```
 
+The app icon's source is `assets/icon.svg`. `scripts/icons.sh` regenerates the macOS `.icns`, the Windows icon resources (`rsrc_windows_*.syso`), the Linux window icon and the UI favicon from it (needs `rsvg-convert`, and `iconutil` on macOS). The generated files are committed.
+
 CI runs vet and tests on every push and pull request. Pushing a `v*` tag builds macOS, Windows and Linux for amd64 and arm64 and publishes a GitHub release:
 
 ```sh

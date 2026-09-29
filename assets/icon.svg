@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#cbd5e1"/>
+    </linearGradient>
+  </defs>
+  <!-- Background, on the macOS icon grid (824 px squircle-ish tile). -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <!-- Printer -->
+  <rect x="210" y="236" width="604" height="300" rx="64" fill="url(#body)"/>
+  <rect x="210" y="236" width="604" height="96" rx="48" fill="#e2e8f0"/>
+  <rect x="210" y="300" width="604" height="32" fill="#e2e8f0"/>
+  <circle cx="744" cy="284" r="18" fill="#22c55e"/>
+  <rect x="290" y="490" width="444" height="28" rx="14" fill="#0f172a"/>
+  <!-- Label coming out of the printer -->
+  <rect x="330" y="504" width="364" height="340" rx="18" fill="#ffffff"/>
+  <rect x="330" y="504" width="364" height="18" fill="#cbd5e1"/>
+  <g fill="#0f172a">
+    <polygon points="372,556 456,556 456,582 406,640 456,640 456,666 372,666 372,640 422,582 372,582"/>
+    <rect x="476" y="556" width="26" height="110"/>
+    <path fill-rule="evenodd" d="M476 556H526A34 34 0 0 1 526 624H476Z M502 582H526A8 8 0 0 1 526 598H502Z"/>
+    <rect x="580" y="556" width="26" height="110"/>
+    <rect x="580" y="640" width="76" height="26"/>
+    <rect x="372.0" y="700" width="9.0" height="100"/>
+    <rect x="392.3" y="700" width="13.5" height="100"/>
+    <rect x="417.2" y="700" width="4.5" height="100"/>
+    <rect x="437.5" y="700" width="18.1" height="100"/>
+    <rect x="466.8" y="700" width="9.0" height="100"/>
+    <rect x="487.2" y="700" width="4.5" height="100"/>
+    <rect x="512.0" y="700" width="9.0" height="100"/>
+    <rect x="532.3" y="700" width="4.5" height="100"/>
+    <rect x="561.7" y="700" width="4.5" height="100"/>
+    <rect x="582.0" y="700" width="13.5" height="100"/>
+    <rect x="606.8" y="700" width="4.5" height="100"/>
+    <rect x="627.2" y="700" width="4.5" height="100"/>
+  </g>
+</svg>

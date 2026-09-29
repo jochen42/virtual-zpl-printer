@@ -18,6 +18,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/jochen42/virtual-zpl-printer/internal/api"
@@ -28,6 +29,12 @@ import (
 
 //go:embed all:frontend
 var frontendFS embed.FS
+
+// appIcon is the Linux window icon; macOS and Windows take theirs from the
+// app bundle and the .syso resources (see scripts/icons.sh).
+//
+//go:embed assets/appicon.png
+var appIcon []byte
 
 // version is set at release build time via -ldflags "-X main.version=…".
 var version = "dev"
@@ -143,6 +150,7 @@ func main() {
 			Assets:  assets,
 			Handler: handler,
 		},
+		Linux: &linux.Options{Icon: appIcon, ProgramName: "virtual-zpl-printer"},
 		OnStartup: func(c context.Context) {
 			mu.Lock()
 			wailsCtx = c

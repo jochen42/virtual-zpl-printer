@@ -20,7 +20,8 @@ cp README.md LICENSE "build/$base/"
 case "$goos" in
 darwin)
   bundle="build/$base/$app.app"
-  mkdir -p "$bundle/Contents/MacOS"
+  mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+  cp assets/icon.icns "$bundle/Contents/Resources/icon.icns"
   CGO_ENABLED=1 GOOS=darwin GOARCH="$goarch" \
     go build -trimpath -tags "$tags" -ldflags "$ldflags" -o "$bundle/Contents/MacOS/$name" .
   cat > "$bundle/Contents/Info.plist" <<PLIST
@@ -31,6 +32,7 @@ darwin)
   <key>CFBundleName</key><string>$app</string>
   <key>CFBundleDisplayName</key><string>$app</string>
   <key>CFBundleExecutable</key><string>$name</string>
+  <key>CFBundleIconFile</key><string>icon</string>
   <key>CFBundleIdentifier</key><string>com.github.jochen42.virtual-zpl-printer</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleVersion</key><string>${version#v}</string>
@@ -52,6 +54,7 @@ windows)
 linux)
   CGO_ENABLED=1 GOOS=linux GOARCH="$goarch" \
     go build -trimpath -tags "$tags,webkit2_41" -ldflags "$ldflags" -o "build/$base/$name" .
+  cp assets/appicon.png "build/$base/$name.png"
   tar -C build -czf "dist/$base.tar.gz" "$base"
   ;;
 *)
