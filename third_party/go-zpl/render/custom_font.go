@@ -1,6 +1,7 @@
 package render
 
 import (
+	"math"
 	"strings"
 	"sync"
 
@@ -59,4 +60,23 @@ func lookupFont(name string) (zpl.Font, bool) {
 		}
 	}
 	return 0, false
+}
+
+// fieldAscent returns how far below a ^FO field's top the baseline of a
+// downloaded font sits. Printers fit the font's line box (ascent + descent)
+// into the field height, so the baseline is at height*ascent/(ascent+descent),
+// not at the ascent of the face scaled to the field height.
+func (fm *fontManager) fieldAscent(f zpl.Font, height int) (int, bool) {
+	if f < firstCustomFontID {
+		return 0, false
+	}
+	face, err := fm.getFace(f, height)
+	if err != nil {
+		return 0, false
+	}
+	m := face.Metrics()
+	if m.Ascent+m.Descent <= 0 {
+		return 0, false
+	}
+	return int(math.Round(float64(height) * float64(m.Ascent) / float64(m.Ascent+m.Descent))), true
 }

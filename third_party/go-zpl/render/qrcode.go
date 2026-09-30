@@ -35,6 +35,8 @@ func (c *canvas) drawQRCode(bc *zpl.BarcodeQR) {
 		// Silently skip if encoding fails (data may be too long or invalid)
 		return
 	}
+	// Printers draw the symbol at the field origin without a quiet zone.
+	qr.DisableBorder = true
 
 	// Calculate size based on magnification factor
 	// ZPL magnification 1-10 maps to module size in dots
@@ -48,10 +50,8 @@ func (c *canvas) drawQRCode(bc *zpl.BarcodeQR) {
 		moduleSize = 10
 	}
 
-	// Calculate target size
-	// QR codes have a 4-module quiet zone by default
-	// The size formula is: version*4 + 17 modules (plus quiet zone)
-	qrModules := qr.VersionNumber*4 + 17 + 8 // +8 for quiet zone (4 on each side)
+	// Calculate target size: version*4 + 17 modules
+	qrModules := qr.VersionNumber*4 + 17
 	targetSize := qrModules * moduleSize
 
 	// Generate the QR code image at target size

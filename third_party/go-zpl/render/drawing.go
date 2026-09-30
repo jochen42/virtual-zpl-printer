@@ -495,6 +495,11 @@ func glyphOutline(p *Path, f *sfnt.Font, size float64, r rune, x, y float64) {
 
 // text draws a text field and records its outlines.
 func (c *canvas) text(text string, x, y int, f zpl.Font, height, width int, orient zpl.Orientation, reverse, useBaseline bool) {
+	if !useBaseline && orient == zpl.OrientationNormal {
+		if a, ok := c.fontMgr.fieldAscent(f, height); ok {
+			y, useBaseline = y+a, true
+		}
+	}
 	c.fontMgr.drawText(c.img, text, x, y, f, height, width, orient, reverse, useBaseline)
 	if c.vec != nil {
 		if op, ok := c.fontMgr.textOp(text, x, y, f, height, width, orient, reverse, useBaseline); ok {

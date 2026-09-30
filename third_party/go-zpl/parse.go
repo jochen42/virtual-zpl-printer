@@ -46,6 +46,10 @@ type parser struct {
 
 	// ^CW assignments; like on a printer they outlive the format they were set in.
 	fontAliases map[rune]string
+
+	// The last finished format. Its ^PW, ^LL, ^LH and ^PO carry over to the
+	// next format, as they do on a printer.
+	last *Label
 }
 
 func (p *parser) parseAll() ([]*Label, error) {
@@ -109,6 +113,11 @@ func (p *parser) parseCaretCommand() error {
 		p.inFormat = true
 		p.label = NewLabel()    // Start a new label
 		p.fieldHexIndicator = 0 // Reset state for new label
+		if p.last != nil {
+			p.label.widthDots, p.label.heightDots = p.last.widthDots, p.last.heightDots
+			p.label.homeX, p.label.homeY = p.last.homeX, p.last.homeY
+			p.label.printOrientation = p.last.printOrientation
+		}
 		return nil
 	case "XZ":
 		p.inFormat = false
@@ -117,6 +126,7 @@ func (p *parser) parseCaretCommand() error {
 			if p.label.HasDrawableContent() {
 				p.labels = append(p.labels, p.label)
 			}
+			p.last = p.label
 			p.label = nil
 		}
 		return nil

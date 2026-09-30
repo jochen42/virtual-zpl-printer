@@ -577,30 +577,16 @@ func (c *canvas) drawBarcode128(bc *zpl.BarcodeCode128, moduleWidth int) {
 		isBar = !isBar
 	}
 
-	// Draw human-readable text if enabled
-	if bc.PrintInterpretation && c.fontMgr != nil {
-		// Calculate barcode width for centering
-		barcodeWidth := totalModules * moduleWidth
-
-		textY := y + height + 5
+	// Draw the interpretation line: font A magnified by the module width,
+	// centered on the bars, one magnified dot away from them.
+	if bc.PrintInterpretation {
+		mag := max(moduleWidth, 1)
+		textX := x + (totalModules*moduleWidth-fontAWidth(bc.Data, mag))/2
+		textY := y + height + mag
 		if bc.InterpretationAbove {
-			textY = y - 25
+			textY = y - (fontACapRows+1)*mag
 		}
-
-		// Use a font size proportional to barcode width (approx 1/4 of barcode height, capped)
-		textHeight := max(height/6, 18)
-		if textHeight > 40 {
-			textHeight = 40
-		}
-		textWidth := textHeight
-
-		// Calculate text width to center it
-		textLen := len(bc.Data)
-		estimatedTextWidth := textLen * textWidth * 6 / 10 // Approximate character width
-
-		// Center the text under the barcode
-		textX := x + (barcodeWidth-estimatedTextWidth)/2
-		c.text(bc.Data, textX, textY, zpl.FontA, textHeight, textWidth, zpl.OrientationNormal, false, false)
+		c.drawFontA(bc.Data, textX, textY, mag, col)
 	}
 }
 

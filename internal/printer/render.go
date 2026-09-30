@@ -40,7 +40,7 @@ func Render(data []byte, dpi zpl.DPI) (out Output, err error) {
 		return out, ErrNoLabel
 	}
 
-	renderer := render.New(dpi).WithIgnoreLabelHome(true)
+	renderer := render.New(dpi)
 	var errs []error
 	var drawings []*render.Drawing
 	for i, label := range labels {
